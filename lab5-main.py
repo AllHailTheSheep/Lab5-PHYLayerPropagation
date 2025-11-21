@@ -1,10 +1,11 @@
+import numpy
+
 import phy_model
 import matplotlib.pyplot as plt
 import math
 
 # --- START OF YOUR IMPLEMENTATION ---
 
-# TODO: SET UP TECHNOLOGY PARAMETERS
 # Define a list or dictionary containing the parameters for each technology
 # based on the lab instructions and lecture slides.
 # Each technology should have:
@@ -12,6 +13,10 @@ import math
 # - 'tx_power_dbm': (in dBm)
 # - 'bandwidth_hz': (in Hz)
 # - 'path_loss_exponent_n': (unitless)
+# TECH         tx_power_dbm         bandwidth_hz        path_loss_exponent_n
+# WLAN          20                  20e6                2.5
+# BLUETOOTH      4                   1e6                 2
+# CELLULAR      23                  10e6                3.5
 
 tech_params = [
     # Example for WLAN
@@ -21,22 +26,25 @@ tech_params = [
         'bandwidth_hz': 20e6,
         'path_loss_exponent_n': 2.5
     },
-    # TODO: Add dictionaries for 'Bluetooth' and 'Cellular'
     {
         'name': 'Bluetooth',
-        # ... your parameters here
+        'tx_power_dbm': 4.0,
+        'bandwidth_hz': 1e6,
+        'path_loss_exponent_n': 2
     },
     {
         'name': 'Cellular',
-        # ... your parameters here
+        'tx_power_dbm': 23.0,
+        'bandwidth_hz': 10e6,
+        'path_loss_exponent_n': 3.5
     },
 ]
 
 # TODO: GENERATE DATA
 # Define an array of distances (in meters) from 1m to 1000m.
-# A list comprehension or numpy.logspace() could be useful here.
-# e.g., distances = [i for i in range(1, 1001)]
-distances = [] # Placeholder
+# Use logarithmic spacing to better visualize over orders of magnitude.
+# This generates 100 points from 10^0 (=1 m) to 10^3 (=1000 m).
+distances = numpy.logspace(0, 3, num=100)
 
 
 # Create a dictionary to hold your results
@@ -49,20 +57,22 @@ for tech in tech_params:
 
     # Loop through each distance in the distances array
     for d in distances:
-        # 1. Call calculate_received_power_dbm from phy_model
-        #    pass in the correct tx_power, distance, and path_loss_exponent
+        # 1. Calculate received power in dBm using the LDPL model
+        pr_dbm = phy_model.calculate_received_power_dbm(
+            tx_power_dbm=tech['tx_power_dbm'],
+            distance_m=float(d),
+            path_loss_exponent_n=tech['path_loss_exponent_n']
+        )
 
-        # pr_dbm = phy_model.calculate_received_power_dbm(...) # Placeholder
-
-        # 2. Call calculate_shannon_capacity_bps from phy_model
-        #    pass in the correct bandwidth and the pr_dbm you just calculated
-
-        # capacity_bps = phy_model.calculate_shannon_capacity_bps(...) # Placeholder
+        # 2. Calculate theoretical capacity in bps using Shannon-Hartley
+        capacity_bps = phy_model.calculate_shannon_capacity_bps(
+            bandwidth_hz=tech['bandwidth_hz'],
+            received_power_dbm=pr_dbm
+        )
 
         # 3. Convert capacity from bps to Mbps and append to the results list
-        #    for this technology
-
-        pass # Remove this pass when you implement the loop
+        capacity_mbps = capacity_bps / 1e6
+        results[tech_name].append(capacity_mbps)
 
 
 # --- END OF YOUR IMPLEMENTATION ---
@@ -77,9 +87,9 @@ for tech in tech_params:
 plt.figure()
 
 # 2. Plot each technology's results
-#    plt.semilogx(distances, results['WLAN'], label='WLAN')
-#    TODO: Add plots for 'Bluetooth' and 'Cellular'
-
+plt.semilogx(distances, results['WLAN'], label='WLAN')
+plt.semilogx(distances, results['Bluetooth'], label='Bluetooth')
+plt.semilogx(distances, results['Cellular'], label='Cellular')
 
 # 3. Add plot labels and a title
 plt.xlabel('Distance (meters)')
@@ -89,7 +99,7 @@ plt.legend() # Show the legend
 plt.grid(True) # Add a grid for readability
 
 # 4. Show the plot
-# plt.show()
+plt.show()
 
 # --- END OF PLOTTING ---
 
